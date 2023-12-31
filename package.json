@@ -1,0 +1,29 @@
+{
+  "name": "json-object-to-php-file",
+  "version": "0.0.1",
+  "description": "",
+  "type": "module",
+  "exports": {
+    "types": "./dest/index.d.mts",
+    "default": "./dest/index.mjs"
+  },
+  "main": "dest/index.mjs",
+  "scripts": {
+    "test": "node --test",
+    "build": "node script/build.mjs",
+    "tsc": "tsc"
+  },
+  "author": "segayuu",
+  "license": "MIT",
+  "homepage": "https://github.com/segayuu/json-to-php-file",
+  "repository": "github:segayuu/json-to-php-file.git",
+  "files": [
+    "dest"
+  ],
+  "devDependencies": {
+    "@types/node": "^20.10.5",
+    "esbuild": "^0.19.10",
+    "prettier": "^3.1.1",
+    "typescript": "^5.3.3"
+  }
+}
