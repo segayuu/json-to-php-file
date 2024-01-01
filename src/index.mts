@@ -105,6 +105,12 @@ const appendBufferAsciiFalse = (context: Context): void => {
   bufArray[offset + 4] = 101; // "e"
 };
 
+/**
+ * Append PHP single quoted string.
+ *
+ * PHP Single quoted string is simple escape.
+ * @see https://www.php.net/manual/en/language.types.string.php#language.types.string.syntax.single
+ */
 const appendPHPstring = (context: Context, str: string): void => {
   const escapedValue = str.replaceAll("\\", "\\\\").replaceAll("'", "\\'");
   const encodedValue = encoder.encode(escapedValue);
@@ -195,9 +201,8 @@ const nestWithPlainObject = (
   appendArrayStartSyntax(context); // "[" or "array("
   const keys = Object.keys(obj);
   const { length } = keys;
-  let needComma = false;
 
-  for (let i = 0; i < length; ++i) {
+  for (let i = 0, needComma = false; i < length; ++i) {
     const key = keys[i]!;
     const value = obj[key];
     switch (typeof value) {
