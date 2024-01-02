@@ -1,16 +1,12 @@
 type JSONPrimitive = string | number | boolean | null;
-type ReadonlyJSONObject = { readonly [key: string]: ReadonlyJSONValue };
 type ReadonlyJSONHasReferenceValue =
   | readonly ReadonlyJSONValue[]
   | ReadonlyJSONObject;
 type ReadonlyJSONValue = JSONPrimitive | ReadonlyJSONHasReferenceValue;
 
-export interface Options {
-  initalBufferSize?: number;
-  shortArraySyntax?: boolean;
+interface ReadonlyJSONObject {
+  readonly [key: string]: ReadonlyJSONValue;
 }
-
-const encoder = new TextEncoder();
 
 interface Context {
   buf_: Uint8Array;
@@ -18,6 +14,13 @@ interface Context {
   readonly refSet_: WeakSet<ReadonlyJSONHasReferenceValue>;
   readonly shortArraySyntax_: boolean;
 }
+
+export interface Options {
+  initalBufferSize?: number;
+  shortArraySyntax?: boolean;
+}
+
+const encoder = new TextEncoder();
 
 const validateShallowJSONValue = (
   value: unknown
@@ -173,6 +176,9 @@ const appendArrayStartSyntax = (context: Context): void => {
   }
 };
 
+/**
+ * append "<?php return ".
+ */
 const appendAsciiPHPIncludeFilePrefix = (context: Context): void => {
   const offset = context.useLength_;
   const newLength = offset + 13;
