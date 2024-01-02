@@ -303,12 +303,12 @@ const transform = (
 };
 
 const initContext = (options?: Readonly<Options>): Context => {
-  const context: {
+  const context = Object.create(null) as {
     buf_: Uint8Array;
     useLength_: number;
     refSet_: WeakSet<ReadonlyJSONHasReferenceValue>;
     shortArraySyntax_: boolean;
-  } = Object.create(null);
+  };
   const initalBufferSize = (options?.initalBufferSize ?? 1920) | 0;
   context.buf_ = new Uint8Array(new ArrayBuffer(initalBufferSize));
   context.useLength_ = 0;
