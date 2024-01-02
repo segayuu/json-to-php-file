@@ -26,9 +26,9 @@ const growBuffer = (array: Uint8Array, minLength: number = 0): Uint8Array => {
 const appendBufferInt8 = (context: Context, value: number): void => {
   const pos = context.useLength_;
   const newLength = pos + 1;
+  let bufArray = context.buf_;
   ++context.useLength_;
 
-  let bufArray = context.buf_;
   if (bufArray.byteLength < newLength) {
     context.buf_ = bufArray = growBuffer(bufArray, newLength);
   }
@@ -42,9 +42,9 @@ const appendBufferInt8 = (context: Context, value: number): void => {
 const appendBufferAscii = (context: Context, str: string): void => {
   const offset = context.useLength_;
   const newLength = offset + str.length;
-  context.useLength_ = newLength;
-
   let bufArray = context.buf_;
+
+  context.useLength_ = newLength;
   if (bufArray.byteLength < newLength) {
     context.buf_ = bufArray = growBuffer(bufArray, newLength);
   }
@@ -58,9 +58,9 @@ const appendBufferAscii = (context: Context, str: string): void => {
 const appendBufferAsciiNull = (context: Context): void => {
   const offset = context.useLength_;
   const newLength = offset + 4;
-  context.useLength_ = newLength;
-
   let bufArray = context.buf_;
+
+  context.useLength_ = newLength;
   if (bufArray.byteLength < newLength) {
     context.buf_ = bufArray = growBuffer(bufArray, newLength);
   }
@@ -77,9 +77,9 @@ const appendBufferAsciiNull = (context: Context): void => {
 const appendBufferAsciiTrue = (context: Context): void => {
   const offset = context.useLength_;
   const newLength = offset + 4;
-  context.useLength_ = newLength;
-
   let bufArray = context.buf_;
+
+  context.useLength_ = newLength;
   if (bufArray.byteLength < newLength) {
     context.buf_ = bufArray = growBuffer(bufArray, newLength);
   }
@@ -96,9 +96,9 @@ const appendBufferAsciiTrue = (context: Context): void => {
 const appendBufferAsciiFalse = (context: Context): void => {
   const offset = context.useLength_;
   const newLength = offset + 5;
-  context.useLength_ = newLength;
-
   let bufArray = context.buf_;
+
+  context.useLength_ = newLength;
   if (bufArray.byteLength < newLength) {
     context.buf_ = bufArray = growBuffer(bufArray, newLength);
   }
@@ -122,9 +122,9 @@ const appendPHPstring = (context: Context, str: string): void => {
 
   const offset = context.useLength_;
   const newLength = offset + encodedValue.byteLength + 2;
-  context.useLength_ = newLength;
-
   let bufArray = context.buf_;
+
+  context.useLength_ = newLength;
   if (bufArray.byteLength < newLength) {
     context.buf_ = bufArray = growBuffer(bufArray, newLength);
   }
@@ -140,9 +140,9 @@ const appendArrayStartSyntax = (context: Context): void => {
   } else {
     const offset = context.useLength_;
     const newLength = offset + 6;
-    context.useLength_ = newLength;
-
     let bufArray = context.buf_;
+
+    context.useLength_ = newLength;
     if (bufArray.byteLength < newLength) {
       context.buf_ = bufArray = growBuffer(bufArray, newLength);
     }
@@ -159,9 +159,9 @@ const appendArrayStartSyntax = (context: Context): void => {
 const appendAsciiPHPIncludeFilePrefix = (context: Context): void => {
   const offset = context.useLength_;
   const newLength = offset + 13;
-  context.useLength_ = newLength;
-
   let bufArray = context.buf_;
+
+  context.useLength_ = newLength;
   if (bufArray.byteLength < newLength) {
     context.buf_ = bufArray = growBuffer(bufArray, newLength);
   }
