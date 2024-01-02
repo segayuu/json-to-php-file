@@ -277,7 +277,7 @@ const transform = (context: Context, value: JSONValue | undefined): void => {
   if (Array.isArray(value)) {
     nestWithArray(context, value);
   } else {
-    nestWithPlainObject(context, value as JSONObject);
+    nestWithPlainObject(context, value);
   }
   context.refSet_.delete(value);
 };
