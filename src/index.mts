@@ -1,6 +1,9 @@
 type JSONPrimitive = string | number | boolean | null;
-type JSONValue = JSONPrimitive | JSONObject | JSONValue[];
-type JSONObject = { [key: string]: JSONValue };
+type ReadonlyJSONObject = { readonly [key: string]: ReadonlyJSONValue };
+type ReadonlyJSONHasReferenceValue =
+  | readonly ReadonlyJSONValue[]
+  | Readonly<ReadonlyJSONObject>;
+type ReadonlyJSONValue = JSONPrimitive | ReadonlyJSONHasReferenceValue;
 
 export interface Options {
   initalBufferSize?: number;
@@ -12,13 +15,13 @@ const encoder = new TextEncoder();
 interface Context {
   buf_: Uint8Array;
   useLength_: number;
-  readonly refSet_: WeakSet<Readonly<JSONObject | JSONValue[]>>;
+  readonly refSet_: WeakSet<ReadonlyJSONHasReferenceValue>;
   readonly shortArraySyntax_: boolean;
 }
 
 const validateShallowJSONValue = (
   value: unknown
-): value is Readonly<JSONValue> => {
+): value is ReadonlyJSONValue => {
   if (value === void 0) return false;
   if (value === null) return true;
   switch (typeof value) {
@@ -197,7 +200,7 @@ const appendAsciiPHPIncludeFilePrefix = (context: Context): void => {
 
 const nestWithArray = (
   context: Context,
-  array: Readonly<ArrayLike<JSONValue>>
+  array: readonly ReadonlyJSONValue[]
 ): void => {
   appendArrayStartSyntax(context); // "[" or "array("
 
@@ -213,7 +216,7 @@ const nestWithArray = (
 
 const nestWithPlainObject = (
   context: Context,
-  obj: Readonly<JSONObject>
+  obj: Readonly<ReadonlyJSONObject>
 ): void => {
   appendArrayStartSyntax(context); // "[" or "array("
   const keys = Object.keys(obj);
@@ -247,7 +250,7 @@ const nestWithPlainObject = (
 
 const transform = (
   context: Context,
-  value: Readonly<JSONValue> | undefined
+  value: ReadonlyJSONValue | undefined
 ): void => {
   if (value === null || value === void 0) {
     appendBufferAsciiNull(context);
@@ -281,7 +284,11 @@ const transform = (
     throw TypeError("Circular reference in value argument not supported.");
   }
   context.refSet_.add(value);
-  if ((Array.isArray as (arg: unknown) => arg is readonly JSONValue[])(value)) {
+  if (
+    (Array.isArray as (arg: unknown) => arg is readonly ReadonlyJSONValue[])(
+      value
+    )
+  ) {
     nestWithArray(context, value);
   } else {
     nestWithPlainObject(context, value);
@@ -293,19 +300,19 @@ const initContext = (options?: Readonly<Options>): Context => {
   const context: {
     buf_: Uint8Array;
     useLength_: number;
-    refSet_: WeakSet<object>;
+    refSet_: WeakSet<ReadonlyJSONHasReferenceValue>;
     shortArraySyntax_: boolean;
   } = Object.create(null);
   const initalBufferSize = (options?.initalBufferSize ?? 1920) | 0;
   context.buf_ = new Uint8Array(new ArrayBuffer(initalBufferSize));
   context.useLength_ = 0;
-  context.refSet_ = new WeakSet<object>();
+  context.refSet_ = new WeakSet<ReadonlyJSONHasReferenceValue>();
   context.shortArraySyntax_ = !!options?.shortArraySyntax;
   return context;
 };
 
 export const jsonToPHP = (
-  value: Readonly<JSONValue>,
+  value: ReadonlyJSONValue,
   options?: Readonly<Options>
 ): Uint8Array => {
   const context = initContext(options);
