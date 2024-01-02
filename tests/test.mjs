@@ -1,3 +1,4 @@
+// @ts-check
 import json2phpFile from "../dest/index.mjs";
 import { test } from "node:test";
 import { equal, throws } from "node:assert/strict";
@@ -16,8 +17,9 @@ test("If you give null or undefined or NaN or Infinity you should get null.", ()
   equal(decoder.decode(json2phpFile(Number.NaN)), expected);
   equal(decoder.decode(json2phpFile(Number.POSITIVE_INFINITY)), expected);
   equal(decoder.decode(json2phpFile(Number.NEGATIVE_INFINITY)), expected);
-  equal(decoder.decode(json2phpFile(undefined)), expected);
   equal(decoder.decode(json2phpFile(null)), expected);
+  // @ts-expect-error
+  equal(decoder.decode(json2phpFile(void 0)), expected);
 });
 
 test("If you give true or false you should get boolean true or false.", () => {
@@ -27,7 +29,9 @@ test("If you give true or false you should get boolean true or false.", () => {
 
 test("If you give function or symbol you should return empty array.", () => {
   const expected = "<?php return ;";
+  // @ts-expect-error
   equal(decoder.decode(json2phpFile(() => {})), expected);
+  // @ts-expect-error
   equal(decoder.decode(json2phpFile(Symbol())), expected);
 });
 
@@ -86,8 +90,11 @@ test("If you give object you should get php array of it.", () => {
     decoder.decode(json2phpFile({ undefined: null })),
     "<?php return array('undefined'=>null);"
   );
+  // @ts-expect-error
   equal(decoder.decode(json2phpFile({ a: void 0 })), "<?php return array();");
+  // @ts-expect-error
   equal(decoder.decode(json2phpFile({ a: () => {} })), "<?php return array();");
+  // @ts-expect-error
   equal(decoder.decode(json2phpFile({ a: Symbol() })), "<?php return array();");
   equal(
     decoder.decode(json2phpFile({ [Symbol()]: 1 })),
@@ -118,6 +125,7 @@ test("If you give nest object you should get php nest array of it.", () => {
 test("If circular ref should error.", () => {
   throws(
     () => {
+      /** @type {object[]}> } */
       const array = [];
       array[0] = array;
       json2phpFile(array);
@@ -129,6 +137,7 @@ test("If circular ref should error.", () => {
   );
   throws(
     () => {
+      /** @type {Record<string, object>} */
       const obj = {};
       obj.foo = obj;
       json2phpFile(obj);
@@ -138,6 +147,7 @@ test("If circular ref should error.", () => {
       message: "Circular reference in value argument not supported.",
     }
   );
+  /** @type {Record<string, string>} */
   const obj = {};
   const array = [obj, obj];
   json2phpFile(array);
