@@ -2,7 +2,7 @@ type JSONPrimitive = string | number | boolean | null;
 type ReadonlyJSONObject = { readonly [key: string]: ReadonlyJSONValue };
 type ReadonlyJSONHasReferenceValue =
   | readonly ReadonlyJSONValue[]
-  | Readonly<ReadonlyJSONObject>;
+  | ReadonlyJSONObject;
 type ReadonlyJSONValue = JSONPrimitive | ReadonlyJSONHasReferenceValue;
 
 export interface Options {
