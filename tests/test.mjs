@@ -86,9 +86,11 @@ test("If you give object you should get php array of it.", () => {
     decoder.decode(json2phpFile({ undefined: null })),
     "<?php return array('undefined'=>null);"
   );
+  equal(decoder.decode(json2phpFile({ a: void 0 })), "<?php return array();");
   equal(decoder.decode(json2phpFile({ a: () => {} })), "<?php return array();");
+  equal(decoder.decode(json2phpFile({ a: Symbol() })), "<?php return array();");
   equal(
-    decoder.decode(json2phpFile({ [Symbol()]: () => {} })),
+    decoder.decode(json2phpFile({ [Symbol()]: 1 })),
     "<?php return array();"
   );
   equal(

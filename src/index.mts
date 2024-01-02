@@ -209,6 +209,7 @@ const nestWithPlainObject = (
   for (let i = 0, needComma = false; i < length; ++i) {
     const key = keys[i]!;
     const value = obj[key];
+    if (value === void 0) continue;
     switch (typeof value) {
       case "function":
       case "symbol":
