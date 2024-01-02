@@ -200,7 +200,7 @@ const nestWithArray = (
 
 const nestWithPlainObject = (
   context: Context,
-  obj: Readonly<Record<string, unknown>>
+  obj: Readonly<Record<string | number | symbol, unknown>>
 ): void => {
   appendArrayStartSyntax(context); // "[" or "array("
   const keys = Object.keys(obj);
@@ -272,7 +272,10 @@ const transform = (context: Context, value: unknown): void => {
   if (Array.isArray(value)) {
     nestWithArray(context, value);
   } else {
-    nestWithPlainObject(context, value as Record<string, unknown>);
+    nestWithPlainObject(
+      context,
+      value as Record<string | number | symbol, unknown>
+    );
   }
   context.refSet_.delete(value);
 };
