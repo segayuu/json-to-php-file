@@ -12,9 +12,23 @@ const encoder = new TextEncoder();
 interface Context {
   buf_: Uint8Array;
   useLength_: number;
-  readonly refSet_: WeakSet<object>;
+  readonly refSet_: WeakSet<Readonly<JSONObject | JSONValue[]>>;
   readonly shortArraySyntax_: boolean;
 }
+
+const validateShallowJSONValue = (
+  value: unknown
+): value is Readonly<JSONValue> => {
+  if (value === void 0) return false;
+  if (value === null) return true;
+  switch (typeof value) {
+    case "function":
+    case "symbol":
+    case "bigint":
+      return false;
+  }
+  return true;
+};
 
 const growBuffer = (array: Uint8Array, minLength: number = 0): Uint8Array => {
   const length = Math.max(minLength, array.buffer.byteLength * 2);
@@ -26,9 +40,9 @@ const growBuffer = (array: Uint8Array, minLength: number = 0): Uint8Array => {
 const appendBufferInt8 = (context: Context, value: number): void => {
   const pos = context.useLength_;
   const newLength = pos + 1;
+  let bufArray = context.buf_;
   ++context.useLength_;
 
-  let bufArray = context.buf_;
   if (bufArray.byteLength < newLength) {
     context.buf_ = bufArray = growBuffer(bufArray, newLength);
   }
@@ -42,9 +56,9 @@ const appendBufferInt8 = (context: Context, value: number): void => {
 const appendBufferAscii = (context: Context, str: string): void => {
   const offset = context.useLength_;
   const newLength = offset + str.length;
-  context.useLength_ = newLength;
-
   let bufArray = context.buf_;
+
+  context.useLength_ = newLength;
   if (bufArray.byteLength < newLength) {
     context.buf_ = bufArray = growBuffer(bufArray, newLength);
   }
@@ -58,9 +72,9 @@ const appendBufferAscii = (context: Context, str: string): void => {
 const appendBufferAsciiNull = (context: Context): void => {
   const offset = context.useLength_;
   const newLength = offset + 4;
-  context.useLength_ = newLength;
-
   let bufArray = context.buf_;
+
+  context.useLength_ = newLength;
   if (bufArray.byteLength < newLength) {
     context.buf_ = bufArray = growBuffer(bufArray, newLength);
   }
@@ -77,9 +91,9 @@ const appendBufferAsciiNull = (context: Context): void => {
 const appendBufferAsciiTrue = (context: Context): void => {
   const offset = context.useLength_;
   const newLength = offset + 4;
-  context.useLength_ = newLength;
-
   let bufArray = context.buf_;
+
+  context.useLength_ = newLength;
   if (bufArray.byteLength < newLength) {
     context.buf_ = bufArray = growBuffer(bufArray, newLength);
   }
@@ -96,9 +110,9 @@ const appendBufferAsciiTrue = (context: Context): void => {
 const appendBufferAsciiFalse = (context: Context): void => {
   const offset = context.useLength_;
   const newLength = offset + 5;
-  context.useLength_ = newLength;
-
   let bufArray = context.buf_;
+
+  context.useLength_ = newLength;
   if (bufArray.byteLength < newLength) {
     context.buf_ = bufArray = growBuffer(bufArray, newLength);
   }
@@ -122,9 +136,9 @@ const appendPHPstring = (context: Context, str: string): void => {
 
   const offset = context.useLength_;
   const newLength = offset + encodedValue.byteLength + 2;
-  context.useLength_ = newLength;
-
   let bufArray = context.buf_;
+
+  context.useLength_ = newLength;
   if (bufArray.byteLength < newLength) {
     context.buf_ = bufArray = growBuffer(bufArray, newLength);
   }
@@ -140,9 +154,9 @@ const appendArrayStartSyntax = (context: Context): void => {
   } else {
     const offset = context.useLength_;
     const newLength = offset + 6;
-    context.useLength_ = newLength;
-
     let bufArray = context.buf_;
+
+    context.useLength_ = newLength;
     if (bufArray.byteLength < newLength) {
       context.buf_ = bufArray = growBuffer(bufArray, newLength);
     }
@@ -159,9 +173,9 @@ const appendArrayStartSyntax = (context: Context): void => {
 const appendAsciiPHPIncludeFilePrefix = (context: Context): void => {
   const offset = context.useLength_;
   const newLength = offset + 13;
-  context.useLength_ = newLength;
-
   let bufArray = context.buf_;
+
+  context.useLength_ = newLength;
   if (bufArray.byteLength < newLength) {
     context.buf_ = bufArray = growBuffer(bufArray, newLength);
   }
@@ -190,14 +204,9 @@ const nestWithArray = (
   const { length } = array;
   for (let i = 0; i < length; ++i) {
     if (i !== 0) appendBufferInt8(context, 44); // ","
-    switch (typeof array[i]) {
-      case "function":
-      case "symbol":
-        appendBufferAsciiNull(context);
-        continue;
-      default:
-        transform(context, array[i]);
-    }
+    validateShallowJSONValue(array[i])
+      ? transform(context, array[i])
+      : appendBufferAsciiNull(context);
   }
   appendBufferInt8(context, context.shortArraySyntax_ ? 93 : 41); // "]" : ")"
 };
@@ -213,20 +222,15 @@ const nestWithPlainObject = (
   for (let i = 0, needComma = false; i < length; ++i) {
     const key = keys[i]!;
     const value = obj[key];
-    if (value === void 0) continue;
-    switch (typeof value) {
-      case "function":
-      case "symbol":
-        continue;
-    }
+    if (!validateShallowJSONValue(value)) continue;
     if (needComma) appendBufferInt8(context, 44); // ","
     appendPHPstring(context, key);
 
     const offset = context.useLength_;
     const bufNewLength = offset + 2;
-    context.useLength_ = bufNewLength;
-
     let bufArray = context.buf_;
+
+    context.useLength_ = bufNewLength;
     if (bufArray.byteLength < bufNewLength) {
       context.buf_ = bufArray = growBuffer(bufArray, bufNewLength);
     }
@@ -241,7 +245,10 @@ const nestWithPlainObject = (
   appendBufferInt8(context, context.shortArraySyntax_ ? 93 : 41); // "]" : ")"
 };
 
-const transform = (context: Context, value: JSONValue | undefined): void => {
+const transform = (
+  context: Context,
+  value: Readonly<JSONValue> | undefined
+): void => {
   if (value === null || value === void 0) {
     appendBufferAsciiNull(context);
     return;
@@ -274,7 +281,7 @@ const transform = (context: Context, value: JSONValue | undefined): void => {
     throw TypeError("Circular reference in value argument not supported.");
   }
   context.refSet_.add(value);
-  if (Array.isArray(value)) {
+  if ((Array.isArray as (arg: unknown) => arg is readonly JSONValue[])(value)) {
     nestWithArray(context, value);
   } else {
     nestWithPlainObject(context, value);
@@ -303,7 +310,7 @@ export const jsonToPHP = (
 ): Uint8Array => {
   const context = initContext(options);
   appendAsciiPHPIncludeFilePrefix(context);
-  transform(context, value as Readonly<JSONObject | undefined>);
+  transform(context, value);
   appendBufferInt8(context, 59);
   return context.buf_.slice(0, context.useLength_);
 };
