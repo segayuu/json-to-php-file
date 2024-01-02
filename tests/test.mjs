@@ -1,6 +1,6 @@
 import json2phpFile from "../dest/index.mjs";
 import { test } from "node:test";
-import { equal } from "node:assert/strict";
+import { equal, throws } from "node:assert/strict";
 
 const decoder = new TextDecoder();
 
@@ -111,6 +111,34 @@ test("If you give nest object you should get php nest array of it.", () => {
     ),
     "<?php return array('name'=>'Noel','surname'=>'Broda','childrens'=>array('John'=>array('name'=>'John','surname'=>'Bainotti'),'Tin'=>array('name'=>'Tin','surname'=>'Tassi')));"
   );
+});
+
+test("If circular ref should error.", () => {
+  throws(
+    () => {
+      const array = [];
+      array[0] = array;
+      json2phpFile(array);
+    },
+    {
+      name: "TypeError",
+      message: "Circular reference in value argument not supported.",
+    }
+  );
+  throws(
+    () => {
+      const obj = {};
+      obj.foo = obj;
+      json2phpFile(obj);
+    },
+    {
+      name: "TypeError",
+      message: "Circular reference in value argument not supported.",
+    }
+  );
+  const obj = {};
+  const array = [obj, obj];
+  json2phpFile(array);
 });
 
 test("enable shortArraySyntax", () => {

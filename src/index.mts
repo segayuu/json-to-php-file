@@ -8,6 +8,7 @@ const encoder = new TextEncoder();
 interface Context {
   buf_: Uint8Array;
   useLength_: number;
+  readonly refSet_: WeakSet<object>;
   readonly shortArraySyntax_: boolean;
 }
 
@@ -176,7 +177,10 @@ const appendAsciiPHPIncludeFilePrefix = (context: Context): void => {
   bufArray[offset + 12] = 32; // SP
 };
 
-const nestWithArray = (context: Context, array: ArrayLike<unknown>): void => {
+const nestWithArray = (
+  context: Context,
+  array: Readonly<ArrayLike<unknown>>
+): void => {
   appendArrayStartSyntax(context); // "[" or "array("
 
   const { length } = array;
@@ -196,7 +200,7 @@ const nestWithArray = (context: Context, array: ArrayLike<unknown>): void => {
 
 const nestWithPlainObject = (
   context: Context,
-  obj: Record<string, unknown>
+  obj: Readonly<Record<string, unknown>>
 ): void => {
   appendArrayStartSyntax(context); // "[" or "array("
   const keys = Object.keys(obj);
@@ -261,21 +265,31 @@ const transform = (context: Context, value: unknown): void => {
     case "bigint":
       return;
   }
+  if (context.refSet_.has(value)) {
+    throw TypeError("Circular reference in value argument not supported.");
+  }
+  context.refSet_.add(value);
   if (Array.isArray(value)) {
     nestWithArray(context, value);
-    return;
+  } else {
+    nestWithPlainObject(context, value as Record<string, unknown>);
   }
-  return nestWithPlainObject(context, value as Record<string, unknown>);
+  context.refSet_.delete(value);
 };
 
 const initContext = (options?: Readonly<Options>): Context => {
-  const context = Object.create(null);
+  const context: {
+    buf_: Uint8Array;
+    useLength_: number;
+    refSet_: WeakSet<object>;
+    shortArraySyntax_: boolean;
+  } = Object.create(null);
   const initalBufferSize = (options?.initalBufferSize ?? 1920) | 0;
-  const shortArraySyntax = options?.shortArraySyntax ?? false;
   context.buf_ = new Uint8Array(new ArrayBuffer(initalBufferSize));
   context.useLength_ = 0;
-  context.shortArraySyntax_ = !!shortArraySyntax;
-  return context as Context;
+  context.refSet_ = new WeakSet<object>();
+  context.shortArraySyntax_ = !!options?.shortArraySyntax;
+  return context;
 };
 
 export const jsonToPHP = (
