@@ -8,10 +8,15 @@ interface ReadonlyJSONObject {
   readonly [key: string]: ReadonlyJSONValue;
 }
 
+interface ReadonlyUnknownRecord {
+  readonly [key: string | number | symbol]: unknown;
+}
+
+// mangle target.
 interface Context {
   buf_: Uint8Array;
   useLength_: number;
-  readonly refSet_: WeakSet<ReadonlyJSONHasReferenceValue>;
+  readonly refSet_: WeakSet<object>;
   readonly shortArraySyntax_: boolean;
 }
 
@@ -24,7 +29,7 @@ const encoder = new TextEncoder();
 
 const validateShallowJSONValue = (
   value: unknown
-): value is ReadonlyJSONValue => {
+): value is JSONPrimitive | readonly unknown[] | ReadonlyUnknownRecord => {
   if (value === void 0) return false;
   if (value === null) return true;
   switch (typeof value) {
@@ -204,17 +209,15 @@ const appendAsciiPHPIncludeFilePrefix = (context: Context): void => {
   bufArray[offset + 12] = 32; // SP
 };
 
-const nestWithArray = (
-  context: Context,
-  array: readonly ReadonlyJSONValue[]
-): void => {
+const nestWithArray = (context: Context, array: readonly unknown[]): void => {
   appendArrayStartSyntax(context); // "[" or "array("
 
   const { length } = array;
   for (let i = 0; i < length; ++i) {
     if (i !== 0) appendBufferInt8(context, 44); // ","
-    validateShallowJSONValue(array[i])
-      ? transform(context, array[i])
+    const value = array[i];
+    validateShallowJSONValue(value)
+      ? transform(context, value)
       : appendBufferAsciiNull(context);
   }
   appendBufferInt8(context, context.shortArraySyntax_ ? 93 : 41); // "]" : ")"
@@ -222,7 +225,7 @@ const nestWithArray = (
 
 const nestWithPlainObject = (
   context: Context,
-  obj: Readonly<ReadonlyJSONObject>
+  obj: ReadonlyUnknownRecord
 ): void => {
   appendArrayStartSyntax(context); // "[" or "array("
   const keys = Object.keys(obj);
@@ -254,10 +257,7 @@ const nestWithPlainObject = (
   appendBufferInt8(context, context.shortArraySyntax_ ? 93 : 41); // "]" : ")"
 };
 
-const transform = (
-  context: Context,
-  value: ReadonlyJSONValue | undefined
-): void => {
+const transform = (context: Context, value: unknown): void => {
   if (value === null || value === void 0) {
     appendBufferAsciiNull(context);
     return;
@@ -270,49 +270,54 @@ const transform = (
     appendBufferAsciiFalse(context);
     return;
   }
+  if (Number.isFinite(value)) {
+    appendBufferAscii(context, JSON.stringify(value as number));
+    return;
+  }
   switch (typeof value) {
-    case "number":
-      if (Number.isFinite(value)) {
-        appendBufferAscii(context, JSON.stringify(value));
-      } else {
-        appendBufferAsciiNull(context);
-      }
-      return;
     case "string":
       appendPHPstring(context, value);
       return;
-    case "function":
-    case "symbol":
+    case "number":
+      // NaN or Infinity.
+      appendBufferAsciiNull(context);
+      return;
     case "bigint":
+      throw TypeError("BigInt value can't be serialized.");
+    case "object":
+      if (context.refSet_.has(value)) {
+        throw TypeError("Circular reference in value argument not supported.");
+      }
+      context.refSet_.add(value);
+      if ((Array.isArray as (arg: unknown) => arg is unknown[])(value)) {
+        nestWithArray(context, value);
+      } else if (value instanceof Date) {
+        appendPHPstring(context, value.toISOString());
+      } else if (
+        value instanceof Number ||
+        value instanceof Boolean ||
+        value instanceof String
+      ) {
+        transform(context, value.valueOf());
+      } else {
+        nestWithPlainObject(context, value as ReadonlyUnknownRecord);
+      }
+      context.refSet_.delete(value);
       return;
   }
-  if (context.refSet_.has(value)) {
-    throw TypeError("Circular reference in value argument not supported.");
-  }
-  context.refSet_.add(value);
-  if (
-    (Array.isArray as (arg: unknown) => arg is readonly ReadonlyJSONValue[])(
-      value
-    )
-  ) {
-    nestWithArray(context, value);
-  } else {
-    nestWithPlainObject(context, value);
-  }
-  context.refSet_.delete(value);
 };
 
 const initContext = (options?: Readonly<Options>): Context => {
   const context = Object.create(null) as {
     buf_: Uint8Array;
     useLength_: number;
-    refSet_: WeakSet<ReadonlyJSONHasReferenceValue>;
+    refSet_: WeakSet<object>;
     shortArraySyntax_: boolean;
   };
   const initalBufferSize = (options?.initalBufferSize ?? 1920) | 0;
   context.buf_ = new Uint8Array(new ArrayBuffer(initalBufferSize));
   context.useLength_ = 0;
-  context.refSet_ = new WeakSet<ReadonlyJSONHasReferenceValue>();
+  context.refSet_ = new WeakSet<object>();
   context.shortArraySyntax_ = !!options?.shortArraySyntax;
   return context;
 };
@@ -325,6 +330,7 @@ export const jsonToPHP = (
   appendAsciiPHPIncludeFilePrefix(context);
   transform(context, value);
   appendBufferInt8(context, 59);
+  // Trim ArrayBuffer.
   return context.buf_.slice(0, context.useLength_);
 };
 export default jsonToPHP;

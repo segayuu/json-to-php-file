@@ -27,7 +27,7 @@ test("If you give true or false you should get boolean true or false.", () => {
   equal(decoder.decode(json2phpFile(false)), "<?php return false;");
 });
 
-test("If you give function or symbol you should return empty array.", () => {
+test("If you give function or symbol you should get empty.", () => {
   const expected = "<?php return ;";
   // @ts-expect-error
   equal(decoder.decode(json2phpFile(() => {})), expected);
@@ -50,6 +50,16 @@ test("If you give array you should get php array.", () => {
     decoder.decode(json2phpFile(new Array(3))),
     "<?php return array(null,null,null);"
   );
+  let a = ["foo", "bar"];
+  a["baz"] = "quux"; // a: [ 0: 'foo', 1: 'bar', baz: 'quux' ]
+  equal(decoder.decode(json2phpFile(a)), "<?php return array('foo','bar');");
+  equal(
+    decoder.decode(
+      // @ts-expect-error
+      json2phpFile([new Number(3), new String("false"), new Boolean(false)])
+    ),
+    "<?php return array(3,'false',false);"
+  );
   equal(
     decoder.decode(
       json2phpFile(
@@ -69,6 +79,7 @@ test("If you give array you should get php array.", () => {
 });
 
 test("If you give object you should get php array of it.", () => {
+  equal(decoder.decode(json2phpFile({})), "<?php return array();");
   equal(decoder.decode(json2phpFile({ a: 1 })), "<?php return array('a'=>1);");
   equal(
     decoder.decode(json2phpFile({ b: "true" })),
@@ -153,6 +164,19 @@ test("If circular ref should error.", () => {
   json2phpFile(array);
 });
 
+test("If you give Bigint you should throw TypeError", () => {
+  throws(
+    () => {
+      // @ts-expect-error
+      json2phpFile(1000000000000n);
+    },
+    {
+      name: "TypeError",
+      message: "BigInt value can't be serialized.",
+    }
+  );
+});
+
 test("enable shortArraySyntax", () => {
   equal(
     decoder.decode(json2phpFile([1, [2], 3], { shortArraySyntax: true })),
@@ -169,7 +193,7 @@ test("enable shortArraySyntax", () => {
   );
 });
 
-test("If you give should initial buffer size.", () => {
+test("check small initial buffer size.", () => {
   equal(
     decoder.decode(
       json2phpFile(
