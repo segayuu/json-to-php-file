@@ -26,6 +26,7 @@ export interface Options {
 }
 
 const encoder = new TextEncoder();
+const phpSingleQuotedStringEscapeRegexp = /[\\']/g;
 
 const validateShallowJSONValue = (
   value: unknown
@@ -142,21 +143,32 @@ const appendBufferAsciiFalse = (context: Context): void => {
  * @see https://www.php.net/manual/en/language.types.string.php#language.types.string.syntax.single
  */
 const appendPHPstring = (context: Context, str: string): void => {
-  const escapedValue = str.replaceAll("\\", "\\\\").replaceAll("'", "\\'");
-  const encodedValue = encoder.encode(escapedValue);
+  const escapedValue = str.replaceAll(
+    phpSingleQuotedStringEscapeRegexp,
+    "\\$&"
+  );
+  const { length } = escapedValue;
+  appendBufferInt8(context, 39); // "'"
 
   const offset = context.useLength_;
-  const newLength = offset + encodedValue.byteLength + 2;
   let bufArray = context.buf_;
-
-  context.useLength_ = newLength;
-  if (bufArray.byteLength < newLength) {
-    context.buf_ = bufArray = growBuffer(bufArray, newLength);
+  let { read, written } = encoder.encodeInto(
+    escapedValue,
+    bufArray.subarray(offset)
+  );
+  if (read < length) {
+    context.buf_ = bufArray = growBuffer(
+      bufArray,
+      bufArray.byteLength + (length - read) * 3
+    );
+    written += encoder.encodeInto(
+      escapedValue.substring(read),
+      bufArray.subarray(offset + written)
+    ).written;
   }
 
-  bufArray[offset] = 39; // "'"
-  bufArray.set(encodedValue, offset + 1);
-  bufArray[newLength - 1] = 39; // "'"
+  context.useLength_ = offset + written;
+  appendBufferInt8(context, 39); // "'"
 };
 
 const appendArrayStartSyntax = (context: Context): void => {

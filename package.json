@@ -12,7 +12,8 @@
     "test": "node --test",
     "build": "node script/build.mjs",
     "tsc": "tsc",
-    "lint": "eslint"
+    "lint": "eslint",
+    "benchmark": "node ./benchmark/run.mjs"
   },
   "author": "segayuu",
   "license": "MIT",
@@ -32,7 +33,9 @@
     "@typescript-eslint/parser": "^6.17.0",
     "esbuild": "^0.19.11",
     "eslint": "^8.56.0",
+    "json2php": "^0.0.7",
     "prettier": "^3.1.1",
+    "tinybench": "^2.5.1",
     "typescript": "^5.3.3"
   }
 }
