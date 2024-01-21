@@ -2,6 +2,10 @@
 import js from "@eslint/js";
 import typescriptParser from "@typescript-eslint/parser";
 import typescriptPlugin from "@typescript-eslint/eslint-plugin";
+import { FlatCompat } from "@eslint/eslintrc";
+const compat = new FlatCompat({
+  resolvePluginsRelativeTo: import.meta.dirname,
+});
 
 /** @type {FlatConfig[]} */
 export default [
@@ -13,10 +17,7 @@ export default [
     },
     rules: js.configs.recommended.rules,
   },
-  {
-    files: ["./src/index.mts"],
-    rules: typescriptPlugin.configs["eslint-recommended"].overrides[0].rules,
-  },
+  ...compat.extends("plugin:@typescript-eslint/recommended-type-checked"),
   // Enable TypeScript-specific rules
   {
     files: ["./src/index.mts"],
@@ -28,10 +29,6 @@ export default [
       parserOptions: {
         project: "./tsconfig.json",
       },
-    },
-    rules: {
-      ...typescriptPlugin.configs.recommended.rules,
-      // your overrides here
     },
   },
 ];

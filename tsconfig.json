@@ -1,5 +1,5 @@
 {
-  "include": ["src/**/*.mts"],
+  "include": ["src/*.mts"],
   "compilerOptions": {
     "lib": ["es2023"],
     "module": "node16",
