@@ -1,11 +1,9 @@
 import self from "../dest/index.mjs";
-import tinybench from "tinybench";
+import { Bench } from "tinybench";
 import json2php from "json2php";
 
 const obj = {
-  iris: Array(5)
-    .fill(0)
-    .map(() => ({
+  iris: [0, 0, 0, 0, 0].map(() => ({
       sepalLength: (Math.random() * 1000).toFixed(3),
       sepalWidth: (Math.random() * 1000).toFixed(3),
       petalLength: (Math.random() * 1000).toFixed(3),
@@ -14,8 +12,11 @@ const obj = {
     })),
 };
 const encoder = new TextEncoder();
-const bench = new tinybench();
-
+const bench = new Bench({
+  setup() {
+    global.gc();
+  },
+});
 bench.add("self", () => {
   self(obj);
 });

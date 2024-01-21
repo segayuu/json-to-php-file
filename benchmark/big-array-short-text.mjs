@@ -1,5 +1,5 @@
 import self from "../dest/index.mjs";
-import Bench from "tinybench";
+import { Bench } from "tinybench";
 import json2php from "json2php";
 
 const obj = {
@@ -14,7 +14,11 @@ const obj = {
 };
 
 const encoder = new TextEncoder();
-const bench = new Bench();
+const bench = new Bench({
+  setup() {
+    global.gc();
+  },
+});
 bench.add("self", () => {
   self(obj);
 });
