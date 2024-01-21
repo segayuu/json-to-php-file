@@ -34,7 +34,7 @@
     "esbuild": "^0.19.11",
     "eslint": "^8.56.0",
     "json2php": "^0.0.7",
-    "prettier": "^3.1.1",
+    "prettier": "^3.2.4",
     "tinybench": "^2.6.0",
     "typescript": "^5.3.3"
   }
