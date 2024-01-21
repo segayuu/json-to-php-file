@@ -4,8 +4,8 @@ const TITLE = `
 # Benchmarks
 
 Benchmarks performed on:
-- native **JSON.stringify**
-- **fast-json-stringify**
+- self package
+- json2php function
 `;
 
 console.log(TITLE);
